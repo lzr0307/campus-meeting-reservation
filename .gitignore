@@ -1,0 +1,7 @@
+out/
+reports/
+data/
+*.class
+*.log
+.cph/
+**/.cph/
