@@ -293,7 +293,7 @@ public class SwingUI {
         refresh[0].run();
         JDialog dialog = tableDialog("个人信息修改", table,
                 button("保存表格修改", () -> runAndRefresh(() -> savePersonalRow(table, model, user), refresh[0])),
-                button("修改密码", () -> runAndRefresh(() -> service.changePassword(user.getStaffNo(), ask("原密码"), ask("新密码")), refresh[0])),
+                button("修改密码", () -> changePassword(user)),
                 button("刷新", refresh[0]));
         dialog.setVisible(true);
     }
@@ -500,7 +500,17 @@ public class SwingUI {
     }
 
     private void changePassword(AdminStaff user) {
-        run(() -> service.changePassword(user.getStaffNo(), ask("原密码"), ask("新密码")));
+        try {
+            String oldPassword = ask("原密码");
+            if (service.login(user.getStaffNo(), oldPassword).isEmpty()) {
+                message("原密码错误。");
+                return;
+            }
+            String newPassword = ask("新密码");
+            run(() -> service.changePassword(user.getStaffNo(), oldPassword, newPassword));
+        } catch (RuntimeException e) {
+            message("操作失败：" + e.getMessage());
+        }
     }
 
     private DefaultTableModel model(String... columns) {

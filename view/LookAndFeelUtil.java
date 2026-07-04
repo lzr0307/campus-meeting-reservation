@@ -33,7 +33,7 @@ public class LookAndFeelUtil {
                 UIManager.setLookAndFeel(className);
                 return true;
             } catch (Exception ignored) {
-                // FlatLaf is optional. If the jar is not in lib/, use the fallback look and feel.
+
             }
         }
         return false;
@@ -49,7 +49,7 @@ public class LookAndFeelUtil {
             }
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception ignored) {
-            // Swing default is still usable if all look and feel setup fails.
+            
         }
     }
 
