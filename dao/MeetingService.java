@@ -224,10 +224,7 @@ public class MeetingService {
         reservationId = code(reservationId, "预约编号", 20);
         staffNo = code(staffNo, "参会人工号", 20);
         Reservation reservation = findReservation(reservationId);
-        AdminStaff staff = findStaff(staffNo);
-        if (!sameDepartment(staff.getDepartmentId(), reservation.getDepartmentId())) {
-            throw new IllegalArgumentException("只能登记本部门参会人员。");
-        }
+        findStaff(staffNo);
         String checkedReservationId = reservationId;
         String checkedStaffNo = staffNo;
         boolean exists = participants().stream()

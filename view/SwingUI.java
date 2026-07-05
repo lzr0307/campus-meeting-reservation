@@ -510,7 +510,10 @@ public class SwingUI {
         for (Participant participant : service.participants()) {
             try {
                 Reservation reservation = service.findReservation(participant.getReservationId());
-                if (!reservation.getDepartmentId().trim().equalsIgnoreCase(user.getDepartmentId().trim())) {
+                boolean myReservation = reservation.getApplicantNo().equalsIgnoreCase(user.getStaffNo());
+                boolean myDepartmentReservation = reservation.getDepartmentId().trim()
+                        .equalsIgnoreCase(user.getDepartmentId().trim());
+                if (!myReservation && !myDepartmentReservation) {
                     continue;
                 }
                 AdminStaff staff = service.findStaff(participant.getStaffNo());
@@ -524,32 +527,30 @@ public class SwingUI {
 
     private void addParticipantByForm(AdminStaff user) {
         JComboBox<String> reservationBox = new JComboBox<>();
-        List<Reservation> departmentReservations = service.reservations().stream()
-                .filter(r -> r.getDepartmentId().trim().equalsIgnoreCase(user.getDepartmentId().trim()))
+        List<Reservation> availableReservations = service.reservations().stream()
+                .filter(r -> r.getApplicantNo().equalsIgnoreCase(user.getStaffNo()))
                 .filter(r -> r.getStatus() == ConfirmationStatus.APPROVED)
                 .toList();
-        if (departmentReservations.isEmpty()) {
-            departmentReservations = service.reservations().stream()
-                    .filter(r -> r.getDepartmentId().trim().equalsIgnoreCase(user.getDepartmentId().trim()))
+        if (availableReservations.isEmpty()) {
+            availableReservations = service.reservations().stream()
+                    .filter(r -> r.getApplicantNo().equalsIgnoreCase(user.getStaffNo()))
                     .toList();
         }
-        for (Reservation reservation : departmentReservations) {
+        for (Reservation reservation : availableReservations) {
             reservationBox.addItem(reservation.getReservationId() + " - " + reservation.getRoomNo() + " - "
                     + reservation.getStartTime());
         }
 
         JComboBox<String> staffBox = new JComboBox<>();
         for (AdminStaff staff : service.staff()) {
-            if (staff.getDepartmentId().trim().equalsIgnoreCase(user.getDepartmentId().trim())) {
-                staffBox.addItem(staff.getStaffNo() + " - " + staff.getName());
-            }
+            staffBox.addItem(staff.getStaffNo() + " - " + staff.getName() + " - " + staff.getDepartmentId());
         }
 
         if (reservationBox.getItemCount() == 0) {
-            throw new IllegalArgumentException("当前部门暂无可添加参会人员的预约。");
+            throw new IllegalArgumentException("当前账号暂无可添加参会人员的预约。");
         }
         if (staffBox.getItemCount() == 0) {
-            throw new IllegalArgumentException("当前部门暂无可选择的行政人员。");
+            throw new IllegalArgumentException("暂无可选择的行政人员。");
         }
 
         JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
