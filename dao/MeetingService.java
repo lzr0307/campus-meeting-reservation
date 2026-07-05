@@ -225,8 +225,16 @@ public class MeetingService {
         staffNo = code(staffNo, "参会人工号", 20);
         Reservation reservation = findReservation(reservationId);
         AdminStaff staff = findStaff(staffNo);
-        if (!staff.getDepartmentId().equalsIgnoreCase(reservation.getDepartmentId())) {
+        if (!sameDepartment(staff.getDepartmentId(), reservation.getDepartmentId())) {
             throw new IllegalArgumentException("只能登记本部门参会人员。");
+        }
+        String checkedReservationId = reservationId;
+        String checkedStaffNo = staffNo;
+        boolean exists = participants().stream()
+                .anyMatch(p -> p.getReservationId().equalsIgnoreCase(checkedReservationId)
+                        && p.getStaffNo().equalsIgnoreCase(checkedStaffNo));
+        if (exists) {
+            throw new IllegalArgumentException("该人员已在此预约的参会名单中。");
         }
         execute("insert into participant(record_id, reservation_id, staff_no, checked_in) values(?,?,?,?)",
                 nextId("P"), reservationId, staffNo, false);
@@ -414,6 +422,10 @@ public class MeetingService {
                 throw new IllegalArgumentException(field + "不能包含不可见控制字符。");
             }
         }
+    }
+
+    private boolean sameDepartment(String left, String right) {
+        return left != null && right != null && left.trim().equalsIgnoreCase(right.trim());
     }
 
     private void execute(String sql, Object... args) {

@@ -5,6 +5,7 @@ import coursePractice.meetingMIS.entity.AdminStaff;
 import coursePractice.meetingMIS.entity.ConfirmationStatus;
 import coursePractice.meetingMIS.entity.Department;
 import coursePractice.meetingMIS.entity.MeetingRoom;
+import coursePractice.meetingMIS.entity.Participant;
 import coursePractice.meetingMIS.entity.Reservation;
 import coursePractice.meetingMIS.entity.Role;
 
@@ -72,12 +73,12 @@ public class SwingUI {
 
         JPanel root = new JPanel(new BorderLayout(10, 10));
         JLabel title = new JLabel("校内会议预约与排程管理系统", JLabel.CENTER);
-        title.setFont(new Font("Microsoft YaHei", Font.BOLD, 22));
+        title.setFont(new Font("Microsoft YaHei", Font.BOLD, 30));
         root.add(title, BorderLayout.NORTH);
 
         JPanel form = new JPanel(new GridBagLayout());
-        JTextField staffNo = new JTextField("A001");
-        JPasswordField password = new JPasswordField("123456");
+        JTextField staffNo = new JTextField();
+        JPasswordField password = new JPasswordField();
         staffNo.setColumns(18);
         password.setColumns(18);
         GridBagConstraints gbc = new GridBagConstraints();
@@ -169,38 +170,42 @@ public class SwingUI {
         addButton(menu, "提交预约", () -> submitReservation(user));
         addButton(menu, "我的预约", () -> myReservationTable(user));
         addButton(menu, "撤销预约", () -> run(() -> service.cancelReservation(ask("预约编号"), user.getStaffNo())));
-        addButton(menu, "签到管理", this::checkInDialog);
+        addButton(menu, "签到管理", () -> checkInDialog(user));
         addButton(menu, "修改密码", () -> changePassword(user));
     }
 
     private void departmentTable() {
-        DefaultTableModel model = editableModel(new int[]{0, 1}, "序号", "部门编号", "部门名称", "部门简介");
+        DefaultTableModel model = editableModel(new int[] { 0, 1 }, "序号", "部门编号", "部门名称", "部门简介");
         JTable table = new JTable(model);
         Runnable[] refresh = new Runnable[1];
         refresh[0] = () -> {
             model.setRowCount(0);
             int index = 1;
             for (Department d : service.departments()) {
-                model.addRow(new Object[]{index++, d.getId(), d.getName(), d.getDescription()});
+                model.addRow(new Object[] { index++, d.getId(), d.getName(), d.getDescription() });
             }
         };
         refresh[0].run();
         JDialog dialog = tableDialog("部门管理", table,
-                button("新增", () -> runAndRefresh(() -> service.addDepartment(ask("部门编号"), ask("部门名称"), ask("部门简介")), refresh[0])),
+                button("新增",
+                        () -> runAndRefresh(() -> service.addDepartment(ask("部门编号"), ask("部门名称"), ask("部门简介")),
+                                refresh[0])),
                 button("保存表格修改", () -> runAndRefresh(() -> saveDepartmentRows(table, model), refresh[0])),
-                button("删除选中", () -> runAndRefresh(() -> service.deleteDepartment(selectedValue(table, 1)), refresh[0])),
+                button("删除选中",
+                        () -> runAndRefresh(() -> service.deleteDepartment(selectedValue(table, 1)), refresh[0])),
                 button("刷新", refresh[0]));
         dialog.setVisible(true);
     }
 
     private void roomTable() {
-        DefaultTableModel model = editableModel(new int[]{0}, "会议室编号", "会议室名称", "位置", "容量", "设备");
+        DefaultTableModel model = editableModel(new int[] { 0 }, "会议室编号", "会议室名称", "位置", "容量", "设备");
         JTable table = new JTable(model);
         Runnable[] refresh = new Runnable[1];
         refresh[0] = () -> {
             model.setRowCount(0);
             for (MeetingRoom r : service.rooms()) {
-                model.addRow(new Object[]{r.getRoomNo(), r.getName(), r.getLocation(), r.getCapacity(), r.getEquipment()});
+                model.addRow(new Object[] { r.getRoomNo(), r.getName(), r.getLocation(), r.getCapacity(),
+                        r.getEquipment() });
             }
         };
         refresh[0].run();
@@ -213,23 +218,26 @@ public class SwingUI {
     }
 
     private void staffTable() {
-        DefaultTableModel model = editableModel(new int[]{0}, "工号", "姓名", "性别", "部门", "职务", "电话", "角色");
+        DefaultTableModel model = editableModel(new int[] { 0 }, "工号", "姓名", "性别", "部门", "职务", "电话", "角色");
         JTable table = new JTable(model);
         installStaffEditors(table);
         Runnable[] refresh = new Runnable[1];
         refresh[0] = () -> {
             model.setRowCount(0);
             for (AdminStaff s : service.staff()) {
-                model.addRow(new Object[]{s.getStaffNo(), s.getName(), s.getGender(), s.getDepartmentId(),
-                        s.getTitle(), s.getPhone(), s.getRole().getLabel()});
+                model.addRow(new Object[] { s.getStaffNo(), s.getName(), s.getGender(), s.getDepartmentId(),
+                        s.getTitle(), s.getPhone(), s.getRole().getLabel() });
             }
         };
         refresh[0].run();
         JDialog dialog = tableDialog("行政人员管理", table,
                 button("录入人员", () -> runAndRefresh(() -> addStaffByForm(), refresh[0])),
                 button("保存表格修改", () -> runAndRefresh(() -> saveStaffRows(table, model), refresh[0])),
-                button("重置密码", () -> runAndRefresh(() -> service.resetPassword(selectedValue(table, 0), ask("新密码")), refresh[0])),
-                button("设为会议室管理员", () -> runAndRefresh(() -> service.setRoomManager(selectedValue(table, 0)), refresh[0])),
+                button("重置密码",
+                        () -> runAndRefresh(() -> service.resetPassword(selectedValue(table, 0), ask("新密码")),
+                                refresh[0])),
+                button("设为会议室管理员",
+                        () -> runAndRefresh(() -> service.setRoomManager(selectedValue(table, 0)), refresh[0])),
                 button("刷新", refresh[0]));
         dialog.setVisible(true);
     }
@@ -243,7 +251,8 @@ public class SwingUI {
                 button("按条件筛选", () -> run(() -> {
                     String dateText = askOptional("日期 yyyy-MM-dd（可空）");
                     LocalDate date = dateText.isBlank() ? null : LocalDate.parse(dateText, DATE);
-                    fillReservations(model, service.filterReservations(date, askOptional("部门编号（可空）"), askOptional("会议室编号（可空）")));
+                    fillReservations(model,
+                            service.filterReservations(date, askOptional("部门编号（可空）"), askOptional("会议室编号（可空）")));
                 })),
                 button("查看全部", refresh));
         dialog.setVisible(true);
@@ -274,21 +283,23 @@ public class SwingUI {
         refresh[0].run();
         JDialog dialog = tableDialog("我的预约", table,
                 button("复制预约编号", () -> copyToClipboard(selectedValue(table, 0))),
-                button("撤销选中", () -> runAndRefresh(() -> service.cancelReservation(selectedValue(table, 0), user.getStaffNo()), refresh[0])),
+                button("撤销选中",
+                        () -> runAndRefresh(() -> service.cancelReservation(selectedValue(table, 0), user.getStaffNo()),
+                                refresh[0])),
                 button("刷新", refresh[0]));
         dialog.setVisible(true);
     }
 
     private void personalInfoTable(AdminStaff user) {
-        DefaultTableModel model = editableModel(new int[]{0, 6}, "工号", "姓名", "性别", "部门", "职务", "电话", "角色");
+        DefaultTableModel model = editableModel(new int[] { 0, 6 }, "工号", "姓名", "性别", "部门", "职务", "电话", "角色");
         JTable table = new JTable(model);
         installPersonalEditors(table);
         Runnable[] refresh = new Runnable[1];
         refresh[0] = () -> {
             model.setRowCount(0);
             AdminStaff current = service.findStaff(user.getStaffNo());
-            model.addRow(new Object[]{current.getStaffNo(), current.getName(), current.getGender(),
-                    current.getDepartmentId(), current.getTitle(), current.getPhone(), current.getRole().getLabel()});
+            model.addRow(new Object[] { current.getStaffNo(), current.getName(), current.getGender(),
+                    current.getDepartmentId(), current.getTitle(), current.getPhone(), current.getRole().getLabel() });
         };
         refresh[0].run();
         JDialog dialog = tableDialog("个人信息修改", table,
@@ -299,14 +310,16 @@ public class SwingUI {
     }
 
     private void installStaffEditors(JTable table) {
-        table.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JComboBox<>(new String[]{"男", "女"})));
+        table.getColumnModel().getColumn(2)
+                .setCellEditor(new DefaultCellEditor(new JComboBox<>(new String[] { "男", "女" })));
         table.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(departmentBox()));
         table.getColumnModel().getColumn(6).setCellEditor(new DefaultCellEditor(new JComboBox<>(
-                new String[]{Role.SYSTEM_ADMIN.getLabel(), Role.ROOM_MANAGER.getLabel(), Role.STAFF.getLabel()})));
+                new String[] { Role.SYSTEM_ADMIN.getLabel(), Role.ROOM_MANAGER.getLabel(), Role.STAFF.getLabel() })));
     }
 
     private void installPersonalEditors(JTable table) {
-        table.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(new JComboBox<>(new String[]{"男", "女"})));
+        table.getColumnModel().getColumn(2)
+                .setCellEditor(new DefaultCellEditor(new JComboBox<>(new String[] { "男", "女" })));
         table.getColumnModel().getColumn(3).setCellEditor(new DefaultCellEditor(departmentBox()));
     }
 
@@ -321,7 +334,7 @@ public class SwingUI {
     private void addStaffByForm() {
         JTextField staffNo = new JTextField(18);
         JTextField name = new JTextField(18);
-        JComboBox<String> gender = new JComboBox<>(new String[]{"男", "女"});
+        JComboBox<String> gender = new JComboBox<>(new String[] { "男", "女" });
         JComboBox<String> department = departmentBox();
         JTextField title = new JTextField(18);
         JTextField phone = new JTextField(18);
@@ -394,8 +407,8 @@ public class SwingUI {
     private void fillReservations(DefaultTableModel model, List<Reservation> reservations) {
         model.setRowCount(0);
         for (Reservation r : reservations) {
-            model.addRow(new Object[]{r.getReservationId(), r.getDepartmentId(), r.getApplicantNo(), r.getRoomNo(),
-                    r.getStartTime(), r.getEndTime(), r.getStatus().getLabel(), r.toString()});
+            model.addRow(new Object[] { r.getReservationId(), r.getDepartmentId(), r.getApplicantNo(), r.getRoomNo(),
+                    r.getStartTime(), r.getEndTime(), r.getStatus().getLabel(), r.toString() });
         }
     }
 
@@ -412,7 +425,8 @@ public class SwingUI {
 
         Date now = new Date();
         JSpinner startTime = new JSpinner(new SpinnerDateModel(now, null, null, java.util.Calendar.MINUTE));
-        JSpinner endTime = new JSpinner(new SpinnerDateModel(new Date(now.getTime() + 60 * 60 * 1000), null, null, java.util.Calendar.MINUTE));
+        JSpinner endTime = new JSpinner(
+                new SpinnerDateModel(new Date(now.getTime() + 60 * 60 * 1000), null, null, java.util.Calendar.MINUTE));
         startTime.setEditor(new JSpinner.DateEditor(startTime, "yyyy-MM-dd HH:mm"));
         endTime.setEditor(new JSpinner.DateEditor(endTime, "yyyy-MM-dd HH:mm"));
 
@@ -477,19 +491,82 @@ public class SwingUI {
         });
     }
 
-    private void checkInDialog() {
-        String[] options = {"添加参会人员", "签到", "查询签到记录"};
-        int choice = JOptionPane.showOptionDialog(frame, "请选择操作", "签到管理", JOptionPane.DEFAULT_OPTION,
-                JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
-        run(() -> {
-            if (choice == 0) {
-                service.addParticipant(ask("预约编号"), ask("参会人工号"));
-            } else if (choice == 1) {
-                service.checkIn(ask("签到记录编号"));
-            } else if (choice == 2) {
-                showList("签到记录", service.participants());
+    private void checkInDialog(AdminStaff user) {
+        DefaultTableModel model = model("记录编号", "预约编号", "参会人工号", "参会人姓名", "签到状态");
+        JTable table = new JTable(model);
+        Runnable[] refresh = new Runnable[1];
+        refresh[0] = () -> fillParticipantRows(model, user);
+        refresh[0].run();
+
+        JDialog dialog = tableDialog("签到管理", table,
+                button("添加参会人员", () -> runAndRefresh(() -> addParticipantByForm(user), refresh[0])),
+                button("签到选中", () -> runAndRefresh(() -> service.checkIn(selectedValue(table, 0)), refresh[0])),
+                button("刷新", refresh[0]));
+        dialog.setVisible(true);
+    }
+
+    private void fillParticipantRows(DefaultTableModel model, AdminStaff user) {
+        model.setRowCount(0);
+        for (Participant participant : service.participants()) {
+            try {
+                Reservation reservation = service.findReservation(participant.getReservationId());
+                if (!reservation.getDepartmentId().trim().equalsIgnoreCase(user.getDepartmentId().trim())) {
+                    continue;
+                }
+                AdminStaff staff = service.findStaff(participant.getStaffNo());
+                model.addRow(new Object[] { participant.getRecordId(), participant.getReservationId(),
+                        participant.getStaffNo(), staff.getName(), participant.isCheckedIn() ? "已签到" : "未签到" });
+            } catch (RuntimeException ignored) {
+                // Ignore stale participant rows whose reservation or staff record no longer exists.
             }
-        });
+        }
+    }
+
+    private void addParticipantByForm(AdminStaff user) {
+        JComboBox<String> reservationBox = new JComboBox<>();
+        List<Reservation> departmentReservations = service.reservations().stream()
+                .filter(r -> r.getDepartmentId().trim().equalsIgnoreCase(user.getDepartmentId().trim()))
+                .filter(r -> r.getStatus() == ConfirmationStatus.APPROVED)
+                .toList();
+        if (departmentReservations.isEmpty()) {
+            departmentReservations = service.reservations().stream()
+                    .filter(r -> r.getDepartmentId().trim().equalsIgnoreCase(user.getDepartmentId().trim()))
+                    .toList();
+        }
+        for (Reservation reservation : departmentReservations) {
+            reservationBox.addItem(reservation.getReservationId() + " - " + reservation.getRoomNo() + " - "
+                    + reservation.getStartTime());
+        }
+
+        JComboBox<String> staffBox = new JComboBox<>();
+        for (AdminStaff staff : service.staff()) {
+            if (staff.getDepartmentId().trim().equalsIgnoreCase(user.getDepartmentId().trim())) {
+                staffBox.addItem(staff.getStaffNo() + " - " + staff.getName());
+            }
+        }
+
+        if (reservationBox.getItemCount() == 0) {
+            throw new IllegalArgumentException("当前部门暂无可添加参会人员的预约。");
+        }
+        if (staffBox.getItemCount() == 0) {
+            throw new IllegalArgumentException("当前部门暂无可选择的行政人员。");
+        }
+
+        JPanel form = new JPanel(new GridLayout(0, 2, 8, 8));
+        form.add(new JLabel("预约："));
+        form.add(reservationBox);
+        form.add(new JLabel("参会人员："));
+        form.add(staffBox);
+
+        int result = JOptionPane.showConfirmDialog(frame, form, "添加参会人员",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+        if (result != JOptionPane.OK_OPTION) {
+            return;
+        }
+
+        String reservationId = String.valueOf(reservationBox.getSelectedItem()).split(" - ", 2)[0];
+        String staffNo = String.valueOf(staffBox.getSelectedItem()).split(" - ", 2)[0];
+        service.addParticipant(reservationId, staffNo);
     }
 
     private void showStatistics() {

@@ -27,6 +27,10 @@ public class Participant implements Serializable {
         return staffNo;
     }
 
+    public boolean isCheckedIn() {
+        return checkedIn;
+    }
+
     public void setCheckedIn(boolean checkedIn) {
         this.checkedIn = checkedIn;
     }
